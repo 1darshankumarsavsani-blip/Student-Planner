@@ -76,6 +76,7 @@ var T={
   tt:["ટાઇમટેબલ","Timetable"],tt_sub:["વિષય","Subject"],tt_room:["રૂમ / લેબ (વૈકલ્પિક)","Room / lab (optional)"],tt_start:["શરૂ","Start"],tt_end:["પૂરું","End"],tt_add:["ક્લાસ ઉમેરો","Add class"],tt_none:["આ દિવસે કોઈ ક્લાસ નથી.","No classes on this day."],tt_now:["ચાલુ","Now"],tt_next:["હવે પછી","Up next"],
  d0:["રવિ","Sun"],d1:["સોમ","Mon"],d2:["મંગળ","Tue"],d3:["બુધ","Wed"],d4:["ગુરુ","Thu"],d5:["શુક્ર","Fri"],d6:["શનિ","Sat"],
  att:["હાજરી","Attendance"],at_sub:["વિષય","Subject"],at_p:["હાજર","Present"],at_a:["ગેરહાજર","Absent"],at_target:["લક્ષ્ય હાજરી %","Target %"],at_need:["લક્ષ્ય માટે હજી %d ક્લાસ જરૂરી","Need %d more classes to reach target"],at_can:["%d ક્લાસ ચૂકી શકો","You can miss %d classes"],at_none:["હજી કોઈ વિષય નથી.","No subjects yet."],at_over:["કુલ હાજરી","Overall"],at_add:["વિષય ઉમેરો","Add subject"],
+ mk:["માર્ક્સ","Marks"],mk_sub:["વિષય","Subject"],mk_got:["મળેલા માર્ક્સ","Marks obtained"],mk_max:["કુલ માર્ક્સ","Out of"],mk_cr:["ક્રેડિટ (વૈકલ્પિક)","Credits (optional)"],mk_gp:["ગ્રેડ પોઇન્ટ 0-10 (વૈકલ્પિક)","Grade point 0-10 (optional)"],mk_add:["વિષય ઉમેરો","Add subject"],mk_pct:["કુલ ટકા","Overall %"],mk_cgpa:["CGPA","CGPA"],mk_none:["હજી કોઈ માર્ક્સ નથી.","No marks yet."],mk_hint:["CGPA માટે ક્રેડિટ અને ગ્રેડ પોઇન્ટ બંને ભરો.","Fill both credits and grade point for CGPA."],
 about:["Darshankumar Savsani - DARSHAN CORPORATION","Darshankumar Savsani - DARSHAN CORPORATION"]
 };
 var LS="sp_data_v2", S, gu=true, tab="exams", firebaseUser=null, push=function(){};
@@ -93,11 +94,11 @@ function fmtDate(d){return new Date(d).toLocaleDateString("en-GB",{day:"2-digit"
 function fmtDT(d){var x=new Date(d);return x.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+", "+x.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}
 function ask(){return confirm(t("del"))}
 
-var tabs=["exams","tt","att","syl","hw","timer","notes","set"];
+var tabs=["exams","tt","att","mk","syl","hw","timer","notes","set"];
 function nav(){var n=$("#nav");n.innerHTML="";tabs.forEach(function(k){var b=document.createElement("button");b.textContent=t(k);b.className=(k===tab?"on":"");b.onclick=function(){tab=k;render()};n.appendChild(b)})}
 function render(){document.documentElement.lang=gu?"gu":"en";$("#ttl").textContent=t("app");$("#lang").textContent=t("lang");
  $("#acct").textContent=firebaseUser?(firebaseUser.displayName||firebaseUser.email||"✔"):t("signin");nav();
- var m=$("#main");m.innerHTML="";({exams:vExams,tt:vTT,att:vAtt,syl:vSyl,hw:vHw,timer:vTimer,notes:vNotes,set:vSet})[tab](m)}
+ var m=$("#main");m.innerHTML="";({exams:vExams,tt:vTT,att:vAtt,mk:vMarks,syl:vSyl,hw:vHw,timer:vTimer,notes:vNotes,set:vSet})[tab](m)}
 function el(h){var d=document.createElement("div");d.innerHTML=h;return d.firstElementChild}
 
 function vExams(m){
@@ -180,6 +181,18 @@ function vAtt(m){
   c.querySelector("[data-a=a]").onclick=function(){x.total++;save();render()};
   c.querySelector(".x").onclick=function(){if(ask()){S.attendance=S.attendance.filter(function(y){return y.id!==x.id});save();render()}};m.appendChild(c)})}
 function f2(s,n){return s.replace("%d",n)}
+
+
+function vMarks(m){
+ var f=el('<div class="card form"><input id="ms" placeholder="'+t("mk_sub")+'"><div class="row"><input id="mg" type="number" step="any" placeholder="'+t("mk_got")+'"><input id="mm" type="number" step="any" placeholder="'+t("mk_max")+'"></div><div class="row"><input id="mc" type="number" step="any" placeholder="'+t("mk_cr")+'"><input id="mp" type="number" step="any" placeholder="'+t("mk_gp")+'"></div><div class="muted">'+t("mk_hint")+'</div><button class="btn">'+t("mk_add")+'</button></div>');
+ f.querySelector("button").onclick=function(){var s=f.querySelector("#ms").value.trim(),g=parseFloat(f.querySelector("#mg").value),mx=parseFloat(f.querySelector("#mm").value),cr=parseFloat(f.querySelector("#mc").value),gp=parseFloat(f.querySelector("#mp").value);
+  if(!s||isNaN(g)||!(mx>0)||g<0||g>mx)return;S.marks.push({id:id(),subject:s,got:g,max:mx,credits:isNaN(cr)?null:cr,gp:isNaN(gp)?null:gp});save();render()};m.appendChild(f);
+ if(!S.marks.length){m.appendChild(el('<div class="empty">'+t("mk_none")+'</div>'));return}
+ var G=0,M=0,cs=0,cg=0;S.marks.forEach(function(x){G+=x.got;M+=x.max;if(x.credits>0&&x.gp!=null){cs+=x.credits;cg+=x.credits*x.gp}});
+ m.appendChild(el('<div class="card row"><div class="grow"><div class="muted">'+t("mk_pct")+'</div><div class="big">'+(Math.round(G*1000/M)/10)+'% <span class="muted">('+G+'/'+M+')</span></div></div><div class="grow"><div class="muted">'+t("mk_cgpa")+'</div><div class="big">'+(cs?(Math.round(cg*100/cs)/100).toFixed(2):"-")+'</div></div></div>'));
+ S.marks.forEach(function(x){var p=Math.round(x.got*1000/x.max)/10;
+  var c=el('<div class="card"><div class="row"><div class="grow"><div class="big">'+esc(x.subject)+'</div><div class="muted">'+x.got+' / '+x.max+(x.credits?' · '+x.credits+' cr':"")+(x.gp!=null?' · GP '+x.gp:"")+'</div></div><div class="days">'+p+'%</div><button class="x">✕</button></div><div class="bar"><i style="width:'+Math.min(100,p)+'%"></i></div></div>');
+  c.querySelector(".x").onclick=function(){if(ask()){S.marks=S.marks.filter(function(y){return y.id!==x.id});save();render()}};m.appendChild(c)})}
 
 function vNotes(m){
  var f=el('<div class="card form"><input id="nt" placeholder="'+t("title")+'"><textarea id="nb" placeholder="'+t("body")+'"></textarea><button class="btn">'+t("note_add")+'</button></div>');
